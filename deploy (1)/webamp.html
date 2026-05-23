@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Winamp Player</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; background: transparent !important; overflow: hidden; cursor: default; }
+    #app { width: 100%; height: 100%; position: relative; background: transparent !important; }
+    /* Убиваем все белые фоны которые Webamp добавляет в DOM */
+    body > div:not(#app) {
+      background: transparent !important;
+    }
+    /* Webamp root контейнер */
+    #webamp-app, .webamp {
+      background: transparent !important;
+    }
+  </style>
+
+
+</head>
+<body>
+  <div id="app"></div>
+  <div id="rclick-shield" style="position:fixed;inset:0;z-index:99999;pointer-events:none;"></div>
+  <script type="module">
+    import Webamp from "https://unpkg.com/webamp@^2";
+    const base = "https://padalpadalpadalsneg.github.io/MusicPlayer/";
+    let isMobile = false;
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('mobile')) {
+      isMobile = urlParams.get('mobile') === 'true';
+    } else {
+      try {
+        const w = window.top.innerWidth;
+        isMobile = w < 640;
+      } catch(e) {
+        isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 640;
+      }
+    }
+
+    const tracks = [
+      { metaData: { artist: "Sleepy Ghost", title: "By Ur Side (slowed / city mix)" }, url: base + "By%20ur%20side%20(slowed%20__%20city%20mix)%20-%20Sleepy%20Ghost.mp3" },
+      { metaData: { artist: "Charanjit Singh", title: "Raga Bhairav" }, url: base + "Charanjit%20Singh%20-%20Raga%20Bhairav%20(slowd).mp3" },
+      { metaData: { artist: "東京真中", title: "ブレインロット feat. 重音テト" }, url: base + "%E6%9D%B1%E4%BA%AC%E7%9C%9F%E4%B8%AD%20-%20%20%E3%83%95%E3%82%99%E3%83%AC%E3%82%A4%E3%83%B3%E3%83%AD%E3%83%83%E3%83%88%20feat.%20%E9%87%8D%E9%9F%B3%E3%83%86%E3%83%88%20-%20%E6%9D%B1%E4%BA%AC%E7%9C%9F%E4%B8%AD%20.mp3" },
+      { metaData: { artist: "A Tribe Called Quest", title: "Electric Relaxation" }, url: base + "Electric%20Relaxation%20-%20A%20Tribe%20Called%20Quest.mp3" },
+      { metaData: { artist: "Jamiroquai", title: "Canned Heat (Remastered 2006)" }, url: base + "Canned%20Heat%20(Remastered%202006)%20-%20Jamiroquai.mp3" },
+      { metaData: { artist: "Cessblood", title: "St. Harold of the Leafy Scalp" }, url: base + "Cessblood%20%7C%20St.%20Harold%20of%20the%20Leafy%20Scalp.mp3" },
+    ];
+
+    const webamp = new Webamp({
+      initialTracks: tracks,
+      initialWindowLayout: isMobile
+        ? { main: { position: { x: 0, y: 0 } } }
+        : {
+            main:      { position: { x: 0, y: 0   } },
+            equalizer: { position: { x: 0, y: 116 }, closed: false },
+            playlist:  { position: { x: 0, y: 232 }, size: { extraHeight: 8, extraWidth: 0 } },
+          },
+    });
+    webamp.renderWhenReady(document.getElementById("app")).then(() => {
+      webamp.store.dispatch({ type: "SET_VOLUME", volume: 17 });
+      if (isMobile) {
+        setTimeout(() => {
+          const mainWin = document.querySelector('#main-window');
+          if (mainWin) {
+            const parent = mainWin.parentElement;
+            const fixTransform = () => parent.style.setProperty('transform', 'translate(0px, 116px)', 'important');
+            fixTransform();
+            new MutationObserver(fixTransform).observe(parent, { attributes: true, attributeFilter: ['style'] });
+          }
+        }, 300);
+      }
+      const bands = [
+        { band: "preamp", value: 55 },
+        { band: 60,    value: 80 },
+        { band: 170,   value: 75 },
+        { band: 310,   value: 70 },
+        { band: 600,   value: 55 },
+        { band: 1000,  value: 45 },
+        { band: 3000,  value: 35 },
+        { band: 6000,  value: 25 },
+        { band: 12000, value: 20 },
+        { band: 14000, value: 20 },
+        { band: 16000, value: 20 },
+      ];
+      bands.forEach(({ band, value }) => {
+        webamp.store.dispatch({ type: "SET_BAND_VALUE", band, value });
+      });
+      if (isMobile) {
+        webamp.store.dispatch({ type: "CLOSE_WINDOW", windowId: "equalizer" });
+        webamp.store.dispatch({ type: "CLOSE_WINDOW", windowId: "playlist" });
+      }
+    });
+    webamp.onClose(() => {});
+
+    if (!isMobile) {
+      // MutationObserver — возвращаем видимость окон если Webamp скрывает их
+      const visObs = new MutationObserver(mutations => {
+        mutations.forEach(m => {
+          if (m.type === 'attributes' && m.attributeName === 'style') {
+            const el = m.target;
+            const s = el.style;
+            if (s.display === 'none' || s.visibility === 'hidden' || s.opacity === '0') {
+              s.removeProperty('display');
+              s.removeProperty('visibility');
+              s.removeProperty('opacity');
+            }
+          }
+        });
+      });
+      document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+          document.querySelectorAll('#app *').forEach(el => {
+            visObs.observe(el, { attributes: true, attributeFilter: ['style'] });
+          });
+        }, 2000);
+      });
+
+      // Фиксируем позиции всех окон — при любом изменении сбрасываем обратно
+      const FIXED_POSITIONS = isMobile
+        ? { main: { x: 0, y: 116 } }
+        : {
+            main:      { x: 0, y: 0   },
+            equalizer: { x: 0, y: 116 },
+            playlist:  { x: 0, y: 232 },
+          };
+
+      let isSetting = false;
+      webamp.store.subscribe(() => {
+        if (isSetting) return;
+        const state = webamp.store.getState();
+        const windows = state.windows && state.windows.genWindows;
+        if (!windows) return;
+
+        let needsReset = false;
+        for (const [id, fixed] of Object.entries(FIXED_POSITIONS)) {
+          const win = windows[id];
+          if (!win) continue;
+          if (win.x !== fixed.x || win.y !== fixed.y) {
+            needsReset = true;
+            break;
+          }
+        }
+
+        if (needsReset) {
+          isSetting = true;
+          webamp.store.dispatch({
+            type: 'UPDATE_WINDOW_POSITIONS',
+            positions: FIXED_POSITIONS,
+          });
+          isSetting = false;
+        }
+      });
+    }
+
+    // Блокируем drag тайтлбаров Winamp — pointer-events: none только на сами хендлы,
+    // кнопки внутри (.title-bar-buttons) не трогаем
+    const style = document.createElement('style');
+    style.textContent = `
+      .draggable { pointer-events: none !important; }
+      .draggable * { pointer-events: auto !important; }
+    `;
+    document.head.appendChild(style);
+  </script>
+  <script>
+    document.addEventListener('contextmenu', e => { e.preventDefault(); e.stopImmediatePropagation(); return false; }, true);
+    document.addEventListener('mousedown', e => { if (e.button === 2) { e.preventDefault(); e.stopImmediatePropagation(); return false; } }, true);
+  </script>
+</body>
+</html>
