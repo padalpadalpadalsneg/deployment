@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Waliti — Portfolio</title>
+  
+  <meta property="og:title" content="waliti — portfolio" />
+  <meta property="og:description" content="digital product designer & frontend engineer. special projects showcase." />
+  <meta property="og:image" content="https://raw.githubusercontent.com/padalpadalpadalsneg/icons-png-video/main/og-image.png" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/padalpadalpadalsneg/icons-png-video/main/computer_explorer-4.png">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/studio-freight/lenis@1.0.29/bundled/lenis.min.js"></script>
+  <script src="https://unpkg.com/split-type"></script>
+
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* ── CUSTOM CURSORS ── */
+    *, *::before, *::after {
+      cursor: url('data:image/x-win-bitmap;base64,AAACAAEAQEAAABYAEgAoQgAAFgAAACgAAABAAAAAgAAAAAEAIAAAAAAAAEIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA') 0 0, auto !important;
+    }
+    a, button, .tb-btn, .tb-folder-btn, .icon, .folder-menu-item, #folder-close, #video-minimize, #video-restore-btn {
+      cursor: url('data:image/x-win-bitmap;base64,AAACAAEAQEAAABYAEgAoQgAAFgAAACgAAABAAAAAgAAAAAEAIAAAAAAAAEIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA') 0 0, pointer !important;
+    }
+
+    html, body, #desktop, #taskbar, #folder-win, #video-win, #taskbar-nav, #taskbar-windows, #clock, .tb-btn, .tb-folder-btn, .tb-divider, .icon, .icon *, .icon-label, .icon-img-wrap, #folder-titlebar, #folder-menubar, #folder-body, #folder-close, .folder-menu-item, #video-win-title, #video-minimize, #drag-shield, button, a, div, span, img, svg, p, h1, h2, h3, h4, h5, h6, li, ul, ol, strong, em, b, i { cursor: none !important; }
+    iframe { }
+
+    :root {
+      --wallpaper: url('assets/wallpaper.webp');
+      --wallpaper-color: #008080;
+      --taskbar-h: 38px;
+      --taskbar-bg: #c0c0c0;
+      --font-ui:      'MS Sans Serif', Arial, sans-serif;
+      --font-taskbar: 'Coral Pixels', 'MS Sans Serif', Arial, sans-serif;
+      --win-border-light:  #ffffff;
+      --win-border-dark:   #808080;
+      --win-border-darker: #404040;
+      --win-title-active:  #000080;
+      --win-title-text:    #ffffff;
+    }
+
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: #000; font-family: var(--font-ui);
+      -webkit-font-smoothing: none; -moz-osx-font-smoothing: none;
+    }
+    body { display: flex; flex-direction: column; position: relative; }
+
+    body::after {
+      content: " "; display: block; position: fixed; inset: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+      z-index: 99999; background-size: 100% 3px, 6px 100%; pointer-events: none;
+    }
+
+    #desktop {
+      flex: 1; position: relative; overflow: hidden;
+      background-color: var(--wallpaper-color);
+      background-image: var(--wallpaper);
+      background-size: cover; background-position: center center; background-repeat: no-repeat;
+    }
+    #desktop::after {
+      content: ''; position: absolute; inset: 0;
+      background: rgba(0,0,0,0.15); pointer-events: none; z-index: 0;
+    }
+    #desktop-content { position: relative; z-index: 1; width: 100%; height: 100%; }
+
+    #webamp-win { position: absolute; top: 8px; left: 8px; width: 275px; height: 348px; z-index: 1; overflow: hidden; }
+    #webamp-win iframe { width: 100%; height: 100%; border: none; background: transparent; }
+
+    /* ── IMAGE MOUSE TRAIL STYLES ── */
+    .mousetrail-img {
+      position: absolute;
+      object-fit: cover;
+      pointer-events: none;
+      transform: translate(-50%, -50%) scale(0);
+      opacity: 0;
+      z-index: 5;
+      transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+    }
+    .mousetrail-img[data-status="active"] {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
+    }
+
+    /* ── VIDEO WINDOW ── */
+    #video-win {
+      position: absolute; top: 8px; right: 8px; width: 275px; height: 348px; background: #c0c0c0;
+      border-top:    2px solid var(--win-border-light); border-left:   2px solid var(--win-border-light);
+      border-right:  2px solid var(--win-border-darker); border-bottom: 2px solid var(--win-border-darker);
+      z-index: 200; display: flex; flex-direction: column; user-select: none;
+    }
+    #video-win.minimized { display: none; }
+    #video-win-title { height: 20px; background: var(--win-title-active); display: flex; align-items: center; justify-content: space-between; padding: 0 2px 0 4px; flex-shrink: 0; }
+    #video-win-title span { color: #fff; font-family: var(--font-ui); font-size: 11px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; margin-right: 4px; }
+    
+    .win-btn {
+      width: 16px; height: 14px; background: #c0c0c0;
+      border-top:    1px solid var(--win-border-light); border-left:   1px solid var(--win-border-light);
+      border-right:  1px solid var(--win-border-dark); border-bottom: 1px solid var(--win-border-dark);
+      display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; font-family: var(--font-ui); color: #000; flex-shrink: 0;
+    }
+    .win-btn:active { border-top: 1px solid var(--win-border-dark); border-left: 1px solid var(--win-border-dark); border-right: 1px solid var(--win-border-light); border-bottom: 1px solid var(--win-border-light); }
+
+    #video-body {
+      width: 100%; flex: 1; background: #000; display: flex; align-items: center; justify-content: center;
+      overflow: hidden; border-top: 2px solid var(--win-border-dark); border-left: 2px solid var(--win-border-dark);
+      border-right: 2px solid var(--win-border-light); border-bottom: 2px solid var(--win-border-light); position: relative;
+    }
+    #video-placeholder { color: rgba(255,255,255,0.25); font-family: var(--font-ui); font-size: 10px; text-align: center; line-height: 1.8; pointer-events: none; flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+
+    #grain { position: fixed; inset: 0; z-index: 99998; pointer-events: none; opacity: 0.04; }
+
+    /* ── ICONS ── */
+    #icons-container { position: absolute; inset: 0; padding: 16px; pointer-events: none; }
+    .icon { position: absolute; width: 80px; display: flex; flex-direction: column; align-items: center; text-align: center; pointer-events: all; user-select: none; }
+    .icon-img-wrap { width: 32px; height: 32px; position: relative; display: flex; align-items: center; justify-content: center; }
+    .icon img { width: 32px; height: 32px; image-rendering: pixelated; display: block; -webkit-user-drag: none; }
+    .icon-label { margin-top: 4px; font-size: 11px; color: #fff; font-family: var(--font-ui); padding: 1px 4px; border: 1px dashed transparent; line-height: 1.2; word-break: break-word; background: transparent; }
+    .icon.selected .icon-img-wrap img { filter: drop-shadow(0px 0px 1px #000080) invert(10%); }
+    .icon.selected .icon-label { background: #000080; border: 1px dotted #ff0; }
+
+    #custom-cursor { position: fixed; top: 0; left: 0; width: 32px; height: 32px; z-index: 999999; pointer-events: none; image-rendering: pixelated; transform: translate(-999px, -999px); display: block; }
+
+    /* ── FOLDER WINDOW ── */
+    #folder-win { position: absolute; inset: 0; z-index: 700; background: #c0c0c0; display: flex; flex-direction: column; overflow: hidden; opacity: 0; transform: scale(0.95); pointer-events: none; }
+    #folder-win.open { opacity: 1; transform: scale(1); pointer-events: all; }
+    #folder-titlebar { height: 20px; background: #808080; display: flex; align-items: center; justify-content: space-between; padding: 0 2px 0 4px; flex-shrink: 0; user-select: none; }
+    #folder-titlebar.active-win { background: var(--win-title-active); }
+    .folder-title-left { display: flex; align-items: center; gap: 4px; color: #fff; font-size: 11px; font-weight: bold; }
+    #folder-title-img { width: 16px; height: 16px; image-rendering: pixelated; }
+    #folder-menubar { height: 20px; border-bottom: 1px solid var(--win-border-dark); display: flex; align-items: center; padding: 0 6px; gap: 12px; font-size: 11px; color: #000; user-select: none; }
+    #folder-body { flex: 1; background: #fff; overflow-y: auto; position: relative; border-top: 2px solid var(--win-border-dark); border-left: 2px solid var(--win-border-dark); }
+
+    /* ── ABOUT WINDOW ── */
+    #about-win { position: absolute; inset: 0; z-index: 800; background: #c0c0c0; display: flex; flex-direction: column; overflow: hidden; opacity: 0; transform: scale(0.95); pointer-events: none; }
+    #about-win.open { opacity: 1; transform: scale(1); pointer-events: all; }
+    #about-ripple { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+    #about-ripple canvas { position: absolute; top: 0; left: 0; display: block; opacity: 0.45; }
+    #about-body { flex: 1; background: #f1f1f1; overflow-y: auto; position: relative; z-index: 1; }
+
+    /* ── TASKBAR ── */
+    #taskbar { height: var(--taskbar-h); background: var(--taskbar-bg); border-top: 2px solid #fff; display: flex; align-items: center; justify-content: space-between; padding: 2px 4px; z-index: 10000; user-select: none; flex-shrink: 0; }
+    #taskbar-nav { display: flex; gap: 4px; align-items: center; }
+    .tb-btn { font-family: var(--font-taskbar); height: 30px; padding: 0 6px; font-size: 12px; background: #c0c0c0; border-top: 2px solid #fff; border-left: 2px solid #fff; border-right: 2px solid #808080; border-bottom: 2px solid #808080; display: flex; align-items: center; gap: 4px; font-weight: bold; }
+    .tb-btn:active, .tb-btn.active-nav { border-color: #808080 #fff #fff #808080; padding: 1px 5px 0 7px; }
+    .tb-divider { width: 2px; height: 28px; background: #808080; border-right: 1px solid #fff; margin: 0 2px; }
+    #taskbar-windows { flex: 1; display: flex; align-items: center; gap: 4px; overflow: hidden; }
+    #video-restore-btn { height: 30px; padding: 0 8px; font-size: 11px; font-weight: bold; background: var(--taskbar-bg); border-top: 2px solid #fff; border-left: 2px solid #fff; border-right: 2px solid #808080; border-bottom: 2px solid #808080; display: none; align-items: center; gap: 4px; white-space: nowrap; user-select: none; outline: none; }
+    #clock { display: flex; align-items: center; height: 30px; padding: 0 6px; border-top: 2px solid #808080; border-left: 2px solid #808080; border-right: 2px solid #fff; border-bottom: 2px solid #fff; font-size: 11px; font-family: var(--font-ui); background: #c0c0c0; }
+
+    @media (max-width: 639px) {
+      #webamp-win { height: 232px; left: calc(50% - 137.5px); transform: none; top: 0; }
+      #video-win { display: none !important; }
+      #custom-cursor { display: none !important; }
+      html, body, *, *::before, *::after { cursor: auto !important; }
+    }
+  </style>
+</head>
+<body class="crt-office98">
+<div class="screen"><div class="beam"></div></div>
+<canvas id="grain"></canvas>
+<img id="custom-cursor" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAMklEQVRYR2NkGGbAOMD6P8g6DKNgFIyCUTAKRsEoGAWjYBSMglEwCkbBKBgFlAADAwMAv7YDxXpHeVAAAAAElFTkSuQmCC">
+
+<div id="desktop">
+  <div id="mousetrail-container" style="position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 5;"></div>
+
+  <div id="desktop-content">
+    <div id="webamp-win">
+      <iframe id="webamp-iframe" src="webamp.html" allowtransparency="true" scrolling="no" allow="autoplay"></iframe>
+    </div>
+
+    <div id="video-win">
+      <div id="video-win-title">
+        <span>cure_to_AD4K.apk</span>
+        <div class="win-btn" id="video-minimize">
+          <svg width="10" height="10" viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg" style="display:block;image-rendering:pixelated;pointer-events:none">
+            <rect x="1" y="1" width="8" height="8" fill="none" stroke="#000" stroke-width="1.5"/>
+          </svg>
+        </div>
+      </div>
+      <div id="video-body">
+        <video autoplay loop muted playsinline style="width:100%;height:100%;display:block;object-fit:cover;" src="https://raw.githubusercontent.com/padalpadalpadalsneg/icons-png-video/main/YTDown_YouTube_nightride-in-NFS-Underground-2_Media_vrLsloKKDGE_003_480p.mp4"></video>
+      </div>
+    </div>
+
+    <div id="folder-win">
+      <div id="folder-titlebar" class="active-win">
+        <div class="folder-title-left">
+          <img id="folder-title-img" src="">
+          <span id="folder-title-text">folder</span>
+        </div>
+        <div class="win-btn" id="folder-close">✕</div>
+      </div>
+      <div id="folder-menubar">
+        <div>File</div><div>Edit</div><div>View</div><div>Go</div><div>Favorites</div><div>Help</div>
+      </div>
+      <div id="folder-body">
+        <div style="padding: 20px; font-family: 'MS Sans Serif', Arial, sans-serif;">
+          <div id="folder-close-btn" class="backward" style="margin-bottom: 20px; text-decoration: underline;">backward</div>
+          <div id="project-dynamic-content"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="about-win">
+      <div id="about-ripple"></div>
+      <div id="about-body"></div>
+    </div>
+
+    <div id="icons-container"></div>
+  </div>
+</div>
+
+<div id="drag-shield"></div>
+
+<div id="taskbar">
+  <div id="taskbar-nav">
+    <button id="btn-waliti" class="tb-btn active-nav">Waliti</button>
+    <button id="btn-about" class="tb-btn">About</button>
+  </div>
+  <div class="tb-divider"></div>
+  <div id="taskbar-windows">
+    <button id="video-restore-btn">cure_to_AD4K.apk</button>
+  </div>
+  <div class="tb-divider"></div>
+  <div id="clock">
+    <img src="https://raw.githubusercontent.com/padalpadalpadalsneg/icons-png-video/main/cat.gif" width="26" height="26" style="image-rendering:pixelated;margin-right:4px;">
+    <span id="clock-text">00:00 AM</span>
+  </div>
+</div>
+
+<script>
+  const sndOpen = new Audio('assets/windows-xp-menu-command.mp3');
+  const sndClose = new Audio('assets/windows-xp-minimize.mp3');
+
+  const folderWin = document.getElementById('folder-win');
+  const videoWin = document.getElementById('video-win');
+  const folderClose = document.getElementById('folder-close');
+  const dc = document.getElementById('desktop-content');
+
+  const PROJECTS = [
+    { id: 'PAYMENTS', title: 'PAYMENTS', icon: 'assets/icon-payments.png' },
+    { id: 'TRANSFERS', title: 'TRANSFERS', icon: 'assets/icon-transfers.png' },
+    { id: 'PET_BLOSSOM', title: 'PET BLOSSOM', icon: 'assets/icon-pet.png' },
+    { id: 'SBP_TRANSFERS', title: 'SBP TRANSFERS', icon: 'assets/icon-sbp.png' },
+    { id: 'EXTRAS', title: 'EXTRAS', icon: 'assets/icon-extras.png' }
+  ];
+
+  const iconEls = [];
+  const ICON_SLOT = 88;
+  const startX = 16, topY = 16;
+
+  function updateClock() {
+    const d = new Date();
+    let h = d.getHours(), m = d.getMinutes();
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12; h = h ? h : 12;
+    m = m < 10 ? '0'+m : m;
+    const documentClock = document.getElementById('clock-text');
+    if (documentClock) documentClock.textContent = `${h}:${m} ${ampm}`;
+  }
+  setInterval(updateClock, 1000); updateClock();
+
+  function repositionIcons() {
+    const isMob = window.innerWidth < 640;
+    iconEls.forEach((el, i) => {
+      if (el.dataset.userMoved === '1') return;
+      if (isMob) {
+        el.style.left = '16px'; el.style.top  = (16 + i * 80) + 'px';
+      } else {
+        el.style.left = (startX + i * ICON_SLOT) + 'px'; el.style.top  = topY + 'px';
+      }
+    });
+  }
+  window.addEventListener('resize', repositionIcons);
+
+  PROJECTS.forEach((p, index) => {
+    const el = document.createElement('div'); el.className = 'icon'; el.dataset.userMoved = '0'; iconEls.push(el);
+    const iw = document.createElement('div'); iw.className = 'icon-img-wrap';
+    const img = document.createElement('img'); img.src = p.icon;
+    iw.appendChild(img);
+    const title = document.createElement('div'); title.className = 'icon-label'; title.textContent = p.title;
+    el.appendChild(iw); el.appendChild(title); document.getElementById('icons-container').appendChild(el);
+
+    el.addEventListener('click', (e) => {
+      e.stopPropagation(); document.querySelectorAll('.icon').forEach(i => i.classList.remove('selected')); el.classList.add('selected');
+    });
+    el.addEventListener('dblclick', () => openFolder(p, el));
+  });
+  repositionIcons();
+
+  const cursorEl = document.getElementById('custom-cursor');
+  document.addEventListener('mousemove', e => {
+    if (cursorEl) cursorEl.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+  });
+
+  function closeFolderSilent() {
+    if (window.folderGenieTimeout) { clearTimeout(window.folderGenieTimeout); window.folderGenieTimeout = null; }
+    folderWin.classList.remove('open');
+  }
+
+  function openFolder(project, iconEl) {
+    sndOpen.currentTime = 0; sndOpen.play(); closeFolderSilent();
+    document.getElementById('folder-title-img').src = project.icon;
+    document.getElementById('folder-title-text').textContent = project.id + '.folder';
+    if (iconEl) {
+      const r = iconEl.getBoundingClientRect();
+      const dx = r.left + r.width / 2 - window.innerWidth / 2;
+      const dy = r.top + r.height / 2 - window.innerHeight / 2;
+      folderWin.style.transition = 'none'; folderWin.style.transform = `translate(${dx}px, ${dy}px) scale(0.05)`; folderWin.style.opacity = '0';
+      folderWin.classList.add('open');
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        folderWin.style.transition = 'opacity 0.22s ease, transform 0.22s cubic-bezier(0.2,0,0,1)';
+        folderWin.style.transform = 'translate(0,0) scale(1)'; folderWin.style.opacity = '1';
+      }));
+    }
+  }
+
+  function closeFolder() {
+    sndClose.currentTime = 0; sndClose.play();
+    const activeIcon = document.querySelector('.icon.selected') || document.querySelector('.icon');
+    if (activeIcon) {
+      const r = activeIcon.getBoundingClientRect();
+      const dx = r.left + r.width / 2 - window.innerWidth / 2;
+      const dy = r.top + r.height / 2 - window.innerHeight / 2;
+      folderWin.style.transition = 'opacity 0.18s ease, transform 0.18s cubic-bezier(0.4,0,1,1)';
+      folderWin.style.transform = `translate(${dx}px, ${dy}px) scale(0.05)`; folderWin.style.opacity = '0';
+      window.folderGenieTimeout = setTimeout(() => { folderWin.classList.remove('open'); window.folderGenieTimeout = null; }, 200);
+    } else { closeFolderSilent(); }
+  }
+  if (folderClose) folderClose.addEventListener('click', closeFolder);
+  document.getElementById('folder-close-btn').addEventListener('click', closeFolder);
+
+  dc.addEventListener('mousedown', e => {
+    if (!e.target.closest('.icon')) document.querySelectorAll('.icon').forEach(i => i.classList.remove('selected'));
+  });
+
+  const canvas = document.getElementById('grain');
+  const ctx = canvas ? canvas.getContext('2d') : null;
+  let w, h;
+  function resizeGrain() { if(canvas) { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; } }
+  window.addEventListener('resize', resizeGrain); resizeGrain();
+
+  let lastGrainTime = 0;
+  function drawGrain(timestamp) {
+    if (!ctx || document.hidden) { requestAnimationFrame(drawGrain); return; }
+    if (!timestamp) timestamp = performance.now();
+    if (timestamp - lastGrainTime >= 50) {
+      const img = ctx.createImageData(w, h); const d = img.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const v = Math.random() * 255 | 0; d[i] = d[i+1] = d[i+2] = v; d[i+3] = 255;
+      }
+      ctx.putImageData(img, 0, 0); lastGrainTime = timestamp;
+    }
+    requestAnimationFrame(drawGrain);
+  }
+  window.addEventListener('load', () => { requestAnimationFrame(drawGrain); });
+
+  // ── 🔥 ИЗОЛИРОВАННАЯ ВАНИЛЬНАЯ ЛОГИКА IMAGE MOUSE TRAIL ──
+  const trailImages = [
+    'https://images.unsplash.com/photo-1709949908058-a08659bfa922?q=80&w=1200&auto=format',
+    'https://images.unsplash.com/photo-1548192746-dd526f154ed9?q=80&w=1200&auto=format',
+    'https://images.unsplash.com/photo-1693581176773-a5f2362209e6?q=80&w=1200&auto=format',
+    'https://images.unsplash.com/photo-1584043204475-8cc101d6c77a?q=80&w=1200&auto=format',
+    'https://images.unsplash.com/photo-1518599904199-0ca897819ddb?q=80&w=1200&auto=format',
+    'https://images.unsplash.com/photo-1706049379414-437ec3a54e93?q=80&w=1200&auto=format',
+    'https://images.unsplash.com/photo-1709949908219-fd9046282019?q=80&w=1200&auto=format',
+    'https://images.unsplash.com/photo-1508873881324-c92a3fc536ba?q=80&w=1200&auto=format'
+  ];
+
+  const mtContainer = document.getElementById('mousetrail-container');
+  const maxTrailImages = 9;
+  const minTrailDistance = 35; 
+
+  let lastTrailX = 0;
+  let lastTrailY = 0;
+  let currentTrailIndex = 0;
+  const trailElements = [];
+
+  if (mtContainer) {
+    trailImages.forEach((src, index) => {
+      const img = document.createElement('img');
+      img.src = src;
+      img.className = 'mousetrail-img w-20 h-24';
+      img.style.width = '80px';
+      img.style.height = '96px';
+      img.dataset.status = 'inactive';
+      img.dataset.index = index;
+      mtContainer.appendChild(img);
+      trailElements.push(img);
+    });
+
+    document.getElementById('desktop').addEventListener('mousemove', (e) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      if (Math.hypot(x - lastTrailX, y - lastTrailY) > minTrailDistance) {
+        const img = trailElements[currentTrailIndex];
+        if (img) {
+          img.style.left = `${x}px`;
+          img.style.top = `${y}px`;
+          img.dataset.status = 'active';
+
+          const activeIdx = currentTrailIndex;
+          setTimeout(() => {
+            if (trailElements[activeIdx]) trailElements[activeIdx].dataset.status = 'inactive';
+          }, 1000);
+
+          lastTrailX = x;
+          lastTrailY = y;
+          currentTrailIndex = (currentTrailIndex + 1) % Math.min(maxTrailImages, trailElements.length);
+        }
+      }
+    });
+  }
+</script>
+</body>
+</html>
